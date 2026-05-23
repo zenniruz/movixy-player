@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Movixy Player</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0f;
+      --surface: #12121a;
+      --card: #1a1a26;
+      --border: rgba(255,255,255,0.07);
+      --brand: #7c3aed;
+      --brand2: #a855f7;
+      --text: #ffffff;
+      --muted: rgba(255,255,255,0.45);
+      --dim: rgba(255,255,255,0.20);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-size: 18px;
+      font-weight: 900;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      letter-spacing: -0.5px;
+    }
+
+    .header-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+
+    /* ── PLAYER WRAPPER ── */
+    .player-section {
+      width: 100%;
+      background: #000;
+      position: relative;
+    }
+
+    .player-ratio {
+      position: relative;
+      width: 100%;
+      padding-top: 56.25%;
+    }
+
+    .player-iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .player-loading {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      gap: 14px;
+      z-index: 2;
+    }
+
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid rgba(124,58,237,0.25);
+      border-top-color: var(--brand2);
+      animation: spin 0.9s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    /* ── PROVIDER BAR ── */
+    .provider-bar {
+      padding: 10px 16px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .provider-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--dim);
+      margin-bottom: 8px;
+    }
+
+    .provider-list {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 2px;
+    }
+
+    .provider-list::-webkit-scrollbar { display: none; }
+
+    .provider-btn {
+      flex-shrink: 0;
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+
+    .provider-btn:hover { color: var(--text); border-color: rgba(124,58,237,0.4); }
+
+    .provider-btn.active {
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      border-color: transparent;
+      color: #fff;
+    }
+
+    /* ── META INFO ── */
+    .meta-section {
+      padding: 16px 16px 0;
+    }
+
+    .meta-inner {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .meta-poster {
+      width: 72px;
+      min-width: 72px;
+      height: 108px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--card);
+    }
+
+    .meta-poster-placeholder {
+      width: 72px;
+      min-width: 72px;
+      height: 108px;
+      border-radius: 10px;
+      background: var(--card);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+    }
+
+    .meta-info { flex: 1; min-width: 0; }
+
+    .meta-title {
+      font-size: 18px;
+      font-weight: 800;
+      line-height: 1.2;
+      margin-bottom: 6px;
+    }
+
+    .meta-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .badge {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--card);
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+
+    .badge.rating {
+      background: rgba(251,191,36,0.1);
+      color: #fbbf24;
+      border-color: rgba(251,191,36,0.2);
+    }
+
+    .meta-overview {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* ── EP PICKER (TV) ── */
+    .ep-section {
+      padding: 14px 16px 0;
+    }
+
+    .ep-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .ep-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    .ep-select {
+      flex: 1;
+      padding: 10px 12px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 13px;
+      font-weight: 600;
+      appearance: none;
+      cursor: pointer;
+    }
+
+    .ep-select:focus { outline: none; border-color: var(--brand); }
+
+    .ep-go-btn {
+      padding: 10px 18px;
+      background: linear-gradient(135deg, var(--brand), var(--brand2));
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    /* ── FOOTER ── */
+    .footer {
+      margin: 20px 16px 32px;
+      text-align: center;
+    }
+
+    .footer-text {
+      font-size: 11px;
+      color: var(--dim);
+    }
+
+    /* ── ERROR ── */
+    .error-box {
+      margin: 16px;
+      padding: 16px;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 12px;
+      color: #fca5a5;
+      font-size: 13px;
+      display: none;
+    }
+
+    /* ── DESKTOP LAYOUT ── */
+    @media (min-width: 768px) {
+      .header { padding: 14px 24px; }
+      .logo { font-size: 20px; }
+      .provider-bar { padding: 12px 24px; }
+      .meta-section { padding: 20px 24px 0; }
+      .meta-title { font-size: 22px; }
+      .meta-overview { -webkit-line-clamp: 5; }
+      .ep-section { padding: 16px 24px 0; }
+      .footer { margin: 24px 24px 40px; }
+      .error-box { margin: 16px 24px; }
+    }
+
+    @media (min-width: 1024px) {
+      .page-body {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        grid-template-rows: auto 1fr;
+        min-height: calc(100vh - 57px);
+      }
+
+      .player-section {
+        grid-column: 1;
+        grid-row: 1;
+      }
+
+      .provider-bar {
+        grid-column: 1;
+        grid-row: 2;
+        align-self: start;
+      }
+
+      .side-panel {
+        grid-column: 2;
+        grid-row: 1 / 3;
+        border-left: 1px solid var(--border);
+        background: var(--surface);
+        padding: 20px;
+        overflow-y: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="header">
+    <span class="logo">Movixy</span>
+    <span class="header-title" id="headerTitle">Loading…</span>
+  </header>
+
+  <div class="page-body" id="pageBody">
+    <!-- Player -->
+    <section class="player-section">
+      <div class="player-ratio">
+        <div class="player-loading" id="playerLoading">
+          <div class="spinner"></div>
+          <span class="loading-text">Loading player…</span>
+        </div>
+        <iframe
+          id="playerFrame"
+          class="player-iframe"
+          allowfullscreen
+          allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+          referrerpolicy="no-referrer"
+          style="opacity:0;transition:opacity 0.4s"
+        ></iframe>
+      </div>
+    </section>
+
+    <!-- Provider bar -->
+    <div class="provider-bar">
+      <div class="provider-label">Video source</div>
+      <div class="provider-list" id="providerList"></div>
+    </div>
+
+    <!-- Side panel (desktop) / inline (mobile) -->
+    <div class="side-panel" id="sidePanel">
+      <!-- Error -->
+      <div class="error-box" id="errorBox">Could not load this source. Try a different server above.</div>
+
+      <!-- Meta -->
+      <div class="meta-section" id="metaSection" style="display:none">
+        <div class="meta-inner">
+          <div class="meta-poster-placeholder" id="posterPlaceholder">🎬</div>
+          <img id="posterImg" class="meta-poster" src="" alt="" style="display:none" loading="lazy" />
+          <div class="meta-info">
+            <div class="meta-title" id="metaTitle"></div>
+            <div class="meta-badges" id="metaBadges"></div>
+            <div class="meta-overview" id="metaOverview"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Episode picker (TV only) -->
+      <div class="ep-section" id="epSection" style="display:none">
+        <div class="ep-label">Episode</div>
+        <div class="ep-row">
+          <select id="seasonSel" class="ep-select" aria-label="Season"></select>
+          <select id="episodeSel" class="ep-select" aria-label="Episode"></select>
+          <button class="ep-go-btn" onclick="goEpisode()">Play</button>
+        </div>
+      </div>
+
+      <div class="footer">
+        <div class="footer-text">Powered by Movixy · Content sourced from third-party providers</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TMDB_KEY = "YOUR_TMDB_API_KEY"; // replaced via /api/info
+
+    // Parse URL params
+    const params = new URLSearchParams(location.search);
+    const TMDB_ID  = params.get("tmdb") || params.get("id") || "";
+    const TYPE     = (params.get("type") || "movie").toLowerCase(); // "movie" or "tv"
+    const SEASON   = parseInt(params.get("s") || params.get("season") || "1");
+    const EPISODE  = parseInt(params.get("e") || params.get("episode") || "1");
+    const TITLE    = params.get("title") || "";
+
+    let currentSeason  = SEASON;
+    let currentEpisode = EPISODE;
+    let currentProvIdx = 0;
+    let tmdbInfo       = null;
+
+    // ── PROVIDERS ──────────────────────────────────────────────
+    function buildProviders(id, type, s, e) {
+      const isTV = type === "tv";
+      return [
+        {
+          name: "AutoEmbed",
+          url: isTV
+            ? `https://autoembed.co/tv/tmdb/${id}/${s}/${e}`
+            : `https://autoembed.co/movie/tmdb/${id}`,
+        },
+        {
+          name: "VidSrc",
+          url: isTV
+            ? `https://vidsrc.to/embed/tv/${id}/${s}/${e}`
+            : `https://vidsrc.to/embed/movie/${id}`,
+        },
+        {
+          name: "VidLink",
+          url: isTV
+            ? `https://vidlink.pro/tv/${id}/${s}/${e}?primaryColor=7c3aed&secondaryColor=a855f7&iconColor=fff&autoplay=true`
+            : `https://vidlink.pro/movie/${id}?primaryColor=7c3aed&secondaryColor=a855f7&iconColor=fff&autoplay=true`,
+        },
+        {
+          name: "2Embed",
+          url: isTV
+            ? `https://www.2embed.cc/embedtv/${id}&s=${s}&e=${e}`
+            : `https://www.2embed.cc/embed/${id}`,
+        },
+        {
+          name: "EmbedSu",
+          url: isTV
+            ? `https://embed.su/embed/tv/${id}/${s}/${e}`
+            : `https://embed.su/embed/movie/${id}`,
+        },
+        {
+          name: "VidSrc.me",
+          url: isTV
+            ? `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}`
+            : `https://vidsrc.me/embed/movie?tmdb=${id}`,
+        },
+      ];
+    }
+
+    // ── RENDER PROVIDERS ───────────────────────────────────────
+    function renderProviders() {
+      const providers = buildProviders(TMDB_ID, TYPE, currentSeason, currentEpisode);
+      const list = document.getElementById("providerList");
+      list.innerHTML = "";
+      providers.forEach((p, i) => {
+        const btn = document.createElement("button");
+        btn.className = "provider-btn" + (i === currentProvIdx ? " active" : "");
+        btn.textContent = p.name;
+        btn.onclick = () => switchProvider(i);
+        list.appendChild(btn);
+      });
+    }
+
+    // ── LOAD PLAYER ────────────────────────────────────────────
+    function loadPlayer(provIdx) {
+      currentProvIdx = provIdx;
+      const providers = buildProviders(TMDB_ID, TYPE, currentSeason, currentEpisode);
+      const prov = providers[provIdx];
+      if (!prov) return;
+
+      const frame = document.getElementById("playerFrame");
+      const loading = document.getElementById("playerLoading");
+
+      frame.style.opacity = "0";
+      loading.style.display = "flex";
+
+      frame.src = "";
+      setTimeout(() => {
+        frame.src = prov.url;
+      }, 60);
+
+      frame.onload = () => {
+        loading.style.display = "none";
+        frame.style.opacity = "1";
+      };
+
+      // Fallback: hide loader after 8s regardless
+      setTimeout(() => {
+        loading.style.display = "none";
+        frame.style.opacity = "1";
+      }, 8000);
+
+      renderProviders();
+    }
+
+    function switchProvider(idx) {
+      document.getElementById("errorBox").style.display = "none";
+      loadPlayer(idx);
+    }
+
+    // ── TV EPISODE PICKER ──────────────────────────────────────
+    async function loadSeasons() {
+      if (TYPE !== "tv" || !TMDB_ID) return;
+      document.getElementById("epSection").style.display = "block";
+
+      try {
+        const res = await fetch(`/api/info?tmdb=${TMDB_ID}&type=tv`);
+        const data = await res.json();
+        if (!data.seasons) return;
+
+        const seasonSel  = document.getElementById("seasonSel");
+        const episodeSel = document.getElementById("episodeSel");
+
+        data.seasons
+          .filter(s => s.season_number > 0)
+          .forEach(s => {
+            const opt = document.createElement("option");
+            opt.value = s.season_number;
+            opt.textContent = `Season ${s.season_number}`;
+            if (s.season_number === currentSeason) opt.selected = true;
+            seasonSel.appendChild(opt);
+          });
+
+        await loadEpisodes(currentSeason, data);
+        episodeSel.value = currentEpisode;
+
+        seasonSel.onchange = async () => {
+          currentSeason = parseInt(seasonSel.value);
+          await loadEpisodes(currentSeason, data);
+        };
+      } catch {}
+    }
+
+    async function loadEpisodes(seasonNum, data) {
+      const episodeSel = document.getElementById("episodeSel");
+      episodeSel.innerHTML = "";
+
+      let count = 10;
+      if (data && data.seasons) {
+        const s = data.seasons.find(s => s.season_number === seasonNum);
+        if (s) count = s.episode_count || 10;
+      }
+
+      for (let i = 1; i <= count; i++) {
+        const opt = document.createElement("option");
+        opt.value = i;
+        opt.textContent = `Ep ${i}`;
+        episodeSel.appendChild(opt);
+      }
+    }
+
+    function goEpisode() {
+      currentSeason  = parseInt(document.getElementById("seasonSel").value);
+      currentEpisode = parseInt(document.getElementById("episodeSel").value);
+      loadPlayer(currentProvIdx);
+    }
+
+    // ── TMDB META ──────────────────────────────────────────────
+    async function loadMeta() {
+      if (!TMDB_ID) return;
+      document.getElementById("metaSection").style.display = "block";
+      document.getElementById("metaTitle").textContent = TITLE || "Loading…";
+      document.getElementById("headerTitle").textContent = TITLE || "Movixy Player";
+
+      try {
+        const res = await fetch(`/api/info?tmdb=${TMDB_ID}&type=${TYPE}`);
+        const data = await res.json();
+        tmdbInfo = data;
+
+        const title = data.title || data.name || TITLE || "Unknown";
+        document.title = `${title} — Movixy Player`;
+        document.getElementById("metaTitle").textContent = title;
+        document.getElementById("headerTitle").textContent = title;
+
+        if (data.poster_path) {
+          const img = document.getElementById("posterImg");
+          img.src = `https://image.tmdb.org/t/p/w185${data.poster_path}`;
+          img.onload = () => {
+            document.getElementById("posterPlaceholder").style.display = "none";
+            img.style.display = "block";
+          };
+        }
+
+        const badges = document.getElementById("metaBadges");
+        badges.innerHTML = "";
+        if (data.release_date || data.first_air_date) {
+          const year = (data.release_date || data.first_air_date || "").slice(0, 4);
+          if (year) badges.innerHTML += `<span class="badge">${year}</span>`;
+        }
+        if (data.vote_average) {
+          badges.innerHTML += `<span class="badge rating">⭐ ${data.vote_average.toFixed(1)}</span>`;
+        }
+        if (data.runtime) {
+          badges.innerHTML += `<span class="badge">${data.runtime} min</span>`;
+        }
+        if (data.genres?.length) {
+          data.genres.slice(0, 2).forEach(g => {
+            badges.innerHTML += `<span class="badge">${g.name}</span>`;
+          });
+        }
+
+        if (data.overview) {
+          document.getElementById("metaOverview").textContent = data.overview;
+        }
+      } catch (e) {
+        if (TITLE) {
+          document.getElementById("metaTitle").textContent = TITLE;
+          document.getElementById("headerTitle").textContent = TITLE;
+        }
+      }
+    }
+
+    // ── INIT ───────────────────────────────────────────────────
+    async function init() {
+      if (!TMDB_ID) {
+        document.getElementById("metaTitle").textContent = "No movie ID provided.";
+        document.getElementById("metaSection").style.display = "block";
+        document.getElementById("playerLoading").style.display = "none";
+        return;
+      }
+
+      renderProviders();
+      loadPlayer(0);
+
+      await Promise.all([
+        loadMeta(),
+        TYPE === "tv" ? loadSeasons() : Promise.resolve(),
+      ]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
