@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/player", "destination": "/public/player.html" },
+    { "source": "/",       "destination": "/public/index.html"  }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin",  "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET, OPTIONS" }
+      ]
+    },
+    {
+      "source": "/player",
+      "headers": [
+        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
+        { "key": "Content-Security-Policy", "value": "frame-src *; default-src 'self' 'unsafe-inline' 'unsafe-eval' https: data:;" }
+      ]
+    }
+  ]
+}
